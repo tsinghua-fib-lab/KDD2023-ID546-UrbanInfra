@@ -59,4 +59,31 @@ def influenced_tl_by_elec(elec_state, elec2road, tgraph):
     tl_id = [elec2road[node] for node in elec10kv if elec2road[node] in tgraph.nodes()]
     return tl_id
 
+def nodes_ranked_by_CI(Graph):
+    """
+    计算网络中各点的组合影响(CI),由大到小将点排序
+    return->list
+    """
+    node_degree_map = dict(nx.degree(Graph))
+    node_ci = []
+    for node in node_degree_map:
+        ci = 0
+        neighbors = list(Graph.neighbors(node))
+        for neighbor in neighbors:
+            ci += (node_degree_map[neighbor]-1)
+        node_ci.append((node,ci*(node_degree_map[node]-1)))
+    list.sort(node_ci,key = lambda y:y[1],reverse=True)
+    nodes = [example[0] for example in node_ci]
+
+    return nodes
     
+def nodes_ranked_by_Degree(Graph):
+    """
+    计算网络中各点的度(CI),由大到小将点排序
+    return->list
+    """
+    node_degree = list(nx.degree(Graph))
+    list.sort(node_degree,key = lambda y:y[1],reverse=True)
+    nodes = [example[0] for example in node_degree]
+
+    return nodes

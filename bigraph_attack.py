@@ -22,7 +22,7 @@ parser.add_argument('--label', type=str, required=True, help='train or test')
 
 args = parser.parse_args()
 
-FILE = './data/e10kv2tl.json'
+FILE = './data/electricity/e10kv2tl.json'
 EFILE = './data/electricity/all_dict_correct.json'
 TFILE1 = './data/road/road_junc_map.json'
 TFILE2 = './data/road/road_type_map.json'
@@ -30,6 +30,7 @@ TFILE3 = './data/road/tl_id_road2elec_map.json'
 ept = './embedding/elec_feat.pt'
 tpt = './embedding/tra_feat.pt'
 bpt = ('./embedding/bifeatures/bi_elec_feat.pt', './embedding/bifeatures/bi_tra_feat.pt') 
+perturb_bpt = ('./embedding/bifeatures/p_bi_elec_feat.pt', './embedding/bifeatures/p_bi_tra_feat.pt') 
 EMBED_DIM = 64
 HID_DIM = 128
 FEAT_DIM = 64
@@ -63,6 +64,7 @@ if __name__ == "__main__":
                     embed_dim=EMBED_DIM,
                     hid_dim=HID_DIM,
                     feat_dim=FEAT_DIM,
+                    r_type='tertiary',
                     khop=KHOP,
                     epochs=300,
                     pt_path=tpt)
@@ -71,10 +73,11 @@ if __name__ == "__main__":
                     embed_dim=EMBED_DIM,
                     hid_dim=HID_DIM,
                     feat_dim=FEAT_DIM,
+                    r_type='tertiary',
                     subgraph = (egraph, tgraph),
                     khop=KHOP,
                     epochs=600,
-                    pt_path=bpt)
+                    pt_path=perturb_bpt)
                     
     agent = DQN(in_dim=EMBED_DIM,
                 hid_dim=HID_DIM,
@@ -129,11 +132,14 @@ if __name__ == "__main__":
         choosen = []
 
         elec_env.reset()
-        result = [0]
+        result = []
 
         origin_val = calculate_pairwise_connectivity(tgc)
         t_val = calculate_pairwise_connectivity(tgc) / origin_val
         tpower = initial_power
+
+        power_record = []
+        gcc_record = []
 
         done = False
         while not done:
@@ -141,8 +147,9 @@ if __name__ == "__main__":
             h_val = t_val
             hpower = tpower
             node = agent.attack(features, state, choosen)
-
             if bigraph.node_list[node]//BASE < 3 :
+                choosen.append(node)
+                NUM_TEST += 1
                 continue
             choosen.append(node)
             if bigraph.node_list[node]//BASE == 9:
@@ -164,18 +171,22 @@ if __name__ == "__main__":
 
             _state = (state * (num+1) - features[node]) / num
             state = _state
-    
+
+            power_record.append(tpower)
+            gcc_record.append(t_val)
             result.append(total_reward)
 
             if len(choosen) == NUM_TEST:
                 done = True
         
+        print("transfer attack power: ", power_record)
+        print("transfer attack road: ", gcc_record)
         result = np.array(result)
         print(Fore.RED,Back.YELLOW,'saving RL attack result ...')
         print(Style.RESET_ALL)
-        np.savetxt('./result/test/bi_result_'+args.feat+'.txt', result)
+        np.savetxt('./result/test/mask_bi_result_'+args.feat+'.txt', result)
         choosen =  [bigraph.node_list[node] for node in choosen]
-        np.savetxt('./result/test/bi_nodes_'+args.feat+'.txt', np.array(choosen))
+        np.savetxt('./result/test/mask_bi_nodes_'+args.feat+'.txt', np.array(choosen))
 
     elif args.label == 'train':
 

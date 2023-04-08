@@ -61,11 +61,7 @@ if __name__ == "__main__":
 
 
 
-    # attack_nodes = egraph_CI[:num_elec] + tgraph_CI[:num_road]
     attack_nodes = egraph_degree[:num_elec] + tgraph_degree[:num_road]
-
-    # attack_nodes = bigraph_CI[:20]
-    # attack_nodes = bigraph_degree[:20]
     
     random.shuffle(attack_nodes)
     
